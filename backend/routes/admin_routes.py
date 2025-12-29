@@ -1,14 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, session
-import sqlite3
+from backend.database import get_db_connection
 import os
 
 admin_bp = Blueprint("admin", __name__)
-
-# ---------- DB PATH (SAFE & ABSOLUTE) ----------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.abspath(
-    os.path.join(BASE_DIR, "..", "database", "inquiries.db")
-)
 
 # ---------- ADMIN CREDENTIALS ----------
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
@@ -39,8 +33,8 @@ def dashboard():
     if not session.get("admin_logged_in"):
         return redirect("/admin")
 
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    # Use centralized connection
+    conn = get_db_connection()
     cur = conn.cursor()
 
     cur.execute("SELECT * FROM inquiries ORDER BY id DESC")

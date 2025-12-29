@@ -3,7 +3,8 @@ import sqlite3
 import os
 
 DB_NAME = "inquiries.db"
-DB_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "database")
+# Save DB in the same directory (backend/) to avoid path/OneDrive issues
+DB_FOLDER = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(DB_FOLDER, DB_NAME)
 
 def get_db_connection():
