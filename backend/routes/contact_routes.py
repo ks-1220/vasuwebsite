@@ -63,5 +63,9 @@ def contact():
 
 
     # 📧 Send email
-    send_email(data)
-    return jsonify({"status": "success", "message": "Inquiry submitted"})
+    try:
+        send_email(data)
+        return jsonify({"status": "success", "message": "Inquiry submitted"})
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return jsonify({"error": f"Email failed: {str(e)}"}), 500
