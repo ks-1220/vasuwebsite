@@ -49,10 +49,8 @@ def contact():
         
     except Exception as e:
         print(f"❌ Database Error: {e}")
-        # If database fails, we should probably fail the request because data isn't saved.
-        # But for Vercel read-only reliability, we might still want to try sending email?
-        # User requested "should be saved to database", so DB failure is critical.
-        return jsonify({"error": "Database error, please try again."}), 500
+        # DEBUG: Return actual error to user to see what's wrong
+        return jsonify({"error": f"Database error details: {str(e)}"}), 500
 
     # 📧 Send email (Non-blocking failure)
     email_status = "sent"
