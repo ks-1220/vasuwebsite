@@ -1,14 +1,31 @@
 {
+    "version": 2,
     "builds": [
         {
             "src": "backend/app.py",
             "use": "@vercel/python"
+        },
+        {
+            "src": "fortend/templates/**/*",
+            "use": "@vercel/static"
         }
     ],
     "routes": [
         {
+            "src": "/contact",
+            "dest": "/backend/app.py"
+        },
+        {
+            "src": "/admin(.*)",
+            "dest": "/backend/app.py"
+        },
+        {
+            "src": "/",
+            "dest": "/fortend/templates/index.html"
+        },
+        {
             "src": "/(.*)",
-            "dest": "backend/app.py"
+            "dest": "/fortend/templates/$1"
         }
     ]
 }
