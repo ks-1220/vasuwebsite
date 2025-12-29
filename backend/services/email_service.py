@@ -15,6 +15,9 @@ Email: {data['email']}
 Message: {data['message']}
 """)
 
+    if not EMAIL_ADDRESS or not EMAIL_PASSWORD:
+        raise ValueError("Email credentials not configured. Please set EMAIL_ADDRESS and EMAIL_PASSWORD in .env file.")
+
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
         smtp.send_message(msg)
