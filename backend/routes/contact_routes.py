@@ -27,31 +27,39 @@ def contact():
         return jsonify({"error": "Message too short"}), 400
 
     # 💾 Save to database
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    try:
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-    DB_PATH = os.path.abspath(
-    os.path.join(BASE_DIR, "..", "database", "inquiries.db")
-   )
+        DB_PATH = os.path.abspath(
+        os.path.join(BASE_DIR, "..", "database", "inquiries.db")
+       )
 
-    print("DB PATH:", DB_PATH)
-    print("Exists:", os.path.exists(DB_PATH))
+        print("DB PATH:", DB_PATH)
+        # Note: On Vercel, this will likely fail if the DB is not in a writable location (read-only FS)
+        # For now, we wrap it to ensure email still sends.
+        
+        # Check if directory exists, if not trying to create it will fail on read-only
+        # So we just try to connect if file exists
+        
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
 
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
+        cur.execute("""
+        INSERT INTO inquiries (name, phone, email, query, message)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        data["name"],
+        data["phone"],
+        data["email"],
+        data["query"],
+        data["message"]
+    ))
 
-    cur.execute("""
-    INSERT INTO inquiries (name, phone, email, query, message)
-    VALUES (?, ?, ?, ?, ?)
-""", (
-    data["name"],
-    data["phone"],
-    data["email"],
-    data["query"],
-    data["message"]
-))
-
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Warning: Database write failed (likely Read-Only FS on Vercel): {e}")
+        # Continue to send email even if DB fails
 
 
     # 📧 Send email
