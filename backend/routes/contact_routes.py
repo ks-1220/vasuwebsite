@@ -1,8 +1,9 @@
 from flask import Blueprint, request, jsonify
-import sqlite3
 from backend.utils.validators import is_valid_name, is_valid_phone, is_valid_email, is_valid_message
 from backend.services.email_service import send_email
-import os
+from backend.database import get_db_connection
+import sys
+
 contact_bp = Blueprint("contact", __name__)
 
 @contact_bp.route("/contact", methods=["POST"])
@@ -28,44 +29,46 @@ def contact():
 
     # 💾 Save to database
     try:
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-        DB_PATH = os.path.abspath(
-        os.path.join(BASE_DIR, "..", "database", "inquiries.db")
-       )
-
-        print("DB PATH:", DB_PATH)
-        # Note: On Vercel, this will likely fail if the DB is not in a writable location (read-only FS)
-        # For now, we wrap it to ensure email still sends.
-        
-        # Check if directory exists, if not trying to create it will fail on read-only
-        # So we just try to connect if file exists
-        
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         cur = conn.cursor()
 
         cur.execute("""
-        INSERT INTO inquiries (name, phone, email, query, message)
-        VALUES (?, ?, ?, ?, ?)
-    """, (
-        data["name"],
-        data["phone"],
-        data["email"],
-        data["query"],
-        data["message"]
-    ))
+            INSERT INTO inquiries (name, phone, email, query, message)
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            data["name"],
+            data["phone"],
+            data["email"],
+            data.get("query", "General"), # Handle missing query field gracefully
+            data["message"]
+        ))
 
         conn.commit()
         conn.close()
+        print("✅ Inquiry saved to database successfully.")
+        
     except Exception as e:
-        print(f"Warning: Database write failed (likely Read-Only FS on Vercel): {e}")
-        # Continue to send email even if DB fails
+        print(f"❌ Database Error: {e}")
+        # If database fails, we should probably fail the request because data isn't saved.
+        # But for Vercel read-only reliability, we might still want to try sending email?
+        # User requested "should be saved to database", so DB failure is critical.
+        return jsonify({"error": "Database error, please try again."}), 500
 
-
-    # 📧 Send email
+    # 📧 Send email (Non-blocking failure)
+    email_status = "sent"
     try:
         send_email(data)
-        return jsonify({"status": "success", "message": "Inquiry submitted"})
+        print("✅ Email notification sent.")
     except Exception as e:
-        print(f"Error sending email: {e}")
-        return jsonify({"error": f"Email failed: {str(e)}"}), 500
+        # Log the error but DO NOT fail the request
+        print(f"⚠️ Email Warning: {e}")
+        email_status = f"failed: {str(e)}"
+        
+        # We return 200 because the PRIMARY goal (saving to DB) was successful.
+        # The user said "ye errors nhi ana chahiye" (should not get these errors).
+    
+    return jsonify({
+        "status": "success", 
+        "message": "Inquiry submitted successfully!",
+        "email_debug": email_status # Optional: for debugging
+    }), 200

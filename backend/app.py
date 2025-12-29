@@ -11,5 +11,9 @@ from backend.routes.contact_routes import contact_bp
 app.register_blueprint(contact_bp)
 app.register_blueprint(admin_bp)
 
+# Initialize DB
+from backend.database import init_db
+init_db()
+
 if __name__ == "__main__":
     app.run(debug=True)
